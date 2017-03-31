@@ -1,0 +1,72 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    padding: 10px;
+}
+
+.Links > a {
+    display: inline-block;
+    padding: 10px;
+    background: #ccc;
+    border: 1px solid #999;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #000;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.Links > a.active {
+    background: #eee;
+}
+
+.EventBox {
+    height: 100px;
+    background: #999;
+    border: 1px solid #444;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+.EventLog {
+    height: 300px;
+    padding: 10px;
+    border: 1px solid #999;
+    overflow: auto;
+}
+
+.EventLogCounter {
+    display: inline-block;
+    margin: 0 10px;
+    color: #44f;
+}
+
+.EventLogMessage {
+    display: inline-block;
+}
+
+.EventDetails {
+    display: inline-block;
+    border: 1px solid #999;
+    margin: 10px 0;
+    padding: 10px;
+}
+
+.EventDetailsField {
+    position: relative;
+}
+
+.EventDetailsKey {
+    display: inline-block;
+    padding-right: 10em;
+}
+
+.EventDetailsValue {
+    position: absolute;
+    right: 0;
+    display: inline-block;
+}
