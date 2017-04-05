@@ -1,5 +1,4 @@
-import { Component, $c, $h, Events } from "ivi";
-import { EventLog, $EventLogViewer } from "./log";
+import { Component, $c, $h, Events, trace } from "ivi";
 import { $EventDetailsField } from "./event_details";
 
 function MouseEventDetails(ev: MouseEvent) {
@@ -11,13 +10,22 @@ function MouseEventDetails(ev: MouseEvent) {
     );
 }
 
+function getMouseButtons(ev: MouseEvent): number {
+    const button = ev.button;
+    const r = 1 << button;
+    if ((r & (2 | 4)) !== 0) {
+        return button << (((r >> 2) ^ 1) << 1);
+    }
+    return r;
+}
+
 export class MouseEventsMonitor extends Component {
-    private log = new EventLog();
     private pointer: MouseEvent | null = null;
+    private buttons: number = 0;
 
     private checkEvent(ev: MouseEvent) {
-        if (ev.buttons === 0) {
-            this.log.push("cancel");
+        if (this.buttons === 0) {
+            trace("mouse:cancel");
             this.pointer = null;
             document.removeEventListener("mouseup", this.onMouseUp);
             document.removeEventListener("mousemove", this.onMouseMove);
@@ -32,39 +40,67 @@ export class MouseEventsMonitor extends Component {
     }
 
     private onClick = Events.onClick((ev) => {
-        this.log.push("click");
+        trace("event:click");
         this.invalidate();
     });
 
     private onMouseDown = Events.onMouseDown((ev) => {
-        this.log.push("mousedown");
+        trace("event:mousedown");
         this.capture();
         this.pointer = ev.native;
+        if (ev.native.buttons === undefined) {
+            this.buttons |= getMouseButtons(ev.native);
+        } else {
+            this.buttons = ev.native.buttons;
+        }
         this.invalidate();
     });
 
     private onMouseUp = (ev: MouseEvent) => {
-        this.log.push("mouseup");
+        trace("event:mouseup");
         this.pointer = ev;
+        if (ev.buttons === undefined) {
+            this.buttons &= ~getMouseButtons(ev);
+        } else {
+            this.buttons = ev.buttons;
+        }
         this.checkEvent(ev);
         this.invalidate();
     }
 
     private onMouseMove = (ev: MouseEvent) => {
-        this.log.push("mousemove");
+        trace("event:mousemove");
         this.pointer = ev;
+        if (ev.buttons === undefined) {
+            if (ev.which === 0) {
+                this.buttons = 0;
+            }
+        } else {
+            this.buttons = ev.buttons;
+        }
         this.checkEvent(ev);
         this.invalidate();
     }
 
     render() {
         return $h("div").children(
-            $h("div", "EventBox").events([
+            $h("div", "EventBox 1").events([
+                this.onMouseDown,
+                this.onClick,
+            ]),
+            $h("div", "EventBox 2").events([
+                this.onMouseDown,
+                this.onClick,
+            ]),
+            $h("div", "EventBox 3").events([
+                this.onMouseDown,
+                this.onClick,
+            ]),
+            $h("div", "EventBox 4").events([
                 this.onMouseDown,
                 this.onClick,
             ]),
             $h("div").children(this.pointer === null ? null : $c(MouseEventDetails, this.pointer)),
-            $EventLogViewer(this.log),
         );
     }
 }

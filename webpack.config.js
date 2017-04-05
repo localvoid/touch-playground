@@ -11,6 +11,17 @@ module.exports = {
         rules: [
             {
                 test: /\.js$/,
+                use: [
+                    {
+                        loader: "babel-loader",
+                        options: {
+                            presets: ["es2015", "es2016"],
+                        },
+                    },
+                ],
+            },
+            {
+                test: /\.js$/,
                 use: ["source-map-loader"],
                 enforce: "pre"
             },
@@ -18,6 +29,12 @@ module.exports = {
                 test: /\.ts$/,
                 exclude: /node_modules/,
                 use: [
+                    {
+                        loader: "babel-loader",
+                        options: {
+                            presets: ["es2015", "es2016"],
+                        },
+                    },
                     {
                         loader: "ts-loader",
                         options: {

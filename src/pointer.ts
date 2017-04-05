@@ -1,5 +1,4 @@
-import { Component, $c, $h, Events } from "ivi";
-import { EventLog, $EventLogViewer } from "./log";
+import { Component, $c, $h, Events, FEATURES, FeatureFlags, trace } from "ivi";
 import { $EventDetailsField } from "./event_details";
 
 function PointerEventDetails(ev: PointerEvent) {
@@ -13,110 +12,95 @@ function PointerEventDetails(ev: PointerEvent) {
     );
 }
 
-interface PointerTarget {
-    target: EventTarget;
-    pointers: number[];
-}
-
 export class PointerEventsMonitor extends Component {
-    private log = new EventLog();
     private pointers: Map<number, PointerEvent> = new Map<number, PointerEvent>();
-    private targets: PointerTarget[] = [];
-
-    private findTarget(target: Element) {
-        for (let i = 0; i < this.targets.length; i++) {
-            const t = this.targets[i];
-            if (t.target === target) {
-                return t;
-            }
-        }
-        return null;
-    }
 
     private capture(ev: PointerEvent) {
         const target = ev.target as Element;
-        const pt = this.findTarget(target);
         target.setPointerCapture(ev.pointerId);
-        if (pt === null) {
-            this.targets.push({
-                target: target,
-                pointers: [ev.pointerId],
-            });
-            target.addEventListener("pointerup", this.onPointerUp);
-            target.addEventListener("pointercancel", this.onPointerCancel);
-            target.addEventListener("pointermove", this.onPointerMove);
-            target.addEventListener("lostpointercapture", this.onLostCapture);
-        } else {
-            pt.pointers.push(ev.pointerId);
+        if (this.pointers.size === 0) {
+            document.addEventListener("pointerup", this.onPointerUp);
+            document.addEventListener("pointercancel", this.onPointerCancel);
+            document.addEventListener("pointermove", this.onPointerMove);
+            document.addEventListener("lostpointercapture", this.onLostCapture);
         }
     }
 
     private cancel(ev: PointerEvent) {
-        const target = ev.target as Element;
-        const pt = this.findTarget(target);
-        if (pt !== null) {
-            const idx = pt.pointers.indexOf(ev.pointerId);
-            if (idx > -1) {
-                pt.pointers.splice(idx, 1);
-                if (pt.pointers.length === 0) {
-                    target.removeEventListener("pointerup", this.onPointerUp);
-                    target.removeEventListener("pointercancel", this.onPointerCancel);
-                    target.removeEventListener("pointermove", this.onPointerMove);
-                    target.removeEventListener("lostpointercapture", this.onLostCapture);
-                    this.targets.splice(this.targets.indexOf(pt), 1);
-                }
-            }
+        if (this.pointers.size === 0) {
+            document.removeEventListener("pointerup", this.onPointerUp);
+            document.removeEventListener("pointercancel", this.onPointerCancel);
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("lostpointercapture", this.onLostCapture);
         }
     }
 
     private onClick = Events.onClick((ev) => {
-        this.log.push("click");
+        trace("event:click");
         this.invalidate();
     });
 
     private onPointerDown = Events.onPointerDown((ev) => {
-        this.log.push("pointerdown");
+        trace("event:pointerdown");
         this.capture(ev.native);
         this.pointers.set(ev.pointerId, ev.native);
         this.invalidate();
     });
 
     private onLostCapture = (ev: PointerEvent) => {
-        this.log.push("lostcapture");
+        trace("event:lostcapture");
         this.pointers.delete(ev.pointerId);
         this.cancel(ev);
         this.invalidate();
     }
 
     private onPointerUp = (ev: PointerEvent) => {
-        this.log.push("pointerup");
+        trace("event:pointerup");
         this.pointers.delete(ev.pointerId);
         this.cancel(ev);
         this.invalidate();
     }
 
     private onPointerCancel = (ev: PointerEvent) => {
-        this.log.push("pointercancel");
+        trace("event:pointercancel");
         this.pointers.delete(ev.pointerId);
         this.cancel(ev);
         this.invalidate();
     }
 
     private onPointerMove = (ev: PointerEvent) => {
-        this.log.push("pointermove");
+        trace("event:pointermove");
         this.pointers.set(ev.pointerId, ev);
         this.invalidate();
     }
 
     render() {
+        if ((FEATURES & FeatureFlags.PointerEvents) === 0) {
+            return $h("div").children("Pointer Events unavailable");
+        }
+
         return $h("div").children(
-            $h("div", "EventBox")
+            $h("div", "EventBox 1")
+                .events([
+                    this.onPointerDown,
+                    this.onClick,
+                ]),
+            $h("div", "EventBox 2")
+                .events([
+                    this.onPointerDown,
+                    this.onClick,
+                ]),
+            $h("div", "EventBox 3")
+                .events([
+                    this.onPointerDown,
+                    this.onClick,
+                ]),
+            $h("div", "EventBox 4")
                 .events([
                     this.onPointerDown,
                     this.onClick,
                 ]),
             $h("div").children(Array.from(this.pointers.values()).map((p) => $c(PointerEventDetails, p))),
-            $EventLogViewer(this.log),
         );
     }
 }
